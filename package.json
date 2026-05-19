@@ -1,12 +1,15 @@
 {
-  "name": "github-label-sync",
+  "name": "@endbug/github-label-sync",
   "description": "Synchronise your GitHub labels with as few destructive operations as possible",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Financial-Times/github-label-sync.git"
+    "url": "https://github.com/EndBug/github-label-sync.git"
   },
-  "homepage": "https://github.com/Financial-Times/github-label-sync",
-  "bugs": "https://github.com/Financial-Times/github-label-sync/issues",
+  "homepage": "https://github.com/EndBug/github-label-sync",
+  "bugs": "https://github.com/EndBug/github-label-sync/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "main": "lib/github-label-sync.js",
   "bin": "bin/github-label-sync.js",

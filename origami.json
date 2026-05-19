@@ -3,7 +3,7 @@
 	"origamiType": "cli",
 	"origamiVersion": 1,
 	"keywords": [],
-	"support": "https://github.com/Financial-Times/github-label-sync/issues",
+	"support": "https://github.com/EndBug/github-label-sync/issues",
 	"supportStatus": "active",
 	"supportContact": {
 		"email": "origami.support@ft.com",

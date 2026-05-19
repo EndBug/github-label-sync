@@ -1,6 +1,27 @@
 
 # Changelog
 
+## Fork (@endbug/github-label-sync)
+
+This fork continues `github-label-sync` at [EndBug/github-label-sync](https://github.com/EndBug/github-label-sync).
+The upstream Financial Times repository is no longer public; **3.0.0** is the continuity release on npm under `@endbug/github-label-sync`.
+
+### Fork-specific (3.0.0)
+
+  * Publish as `@endbug/github-label-sync` on npm (public scoped package).
+  * Repository, issue tracker, and documentation point at the EndBug fork.
+
+## 3.0.0
+
+Aligned with upstream `github-label-sync@3.0.0` (see commit history since 2.0.0). Notable changes:
+
+  * **Breaking:** Node.js 20+ required (`engines.node`).
+  * Label merge support.
+  * `delete` flag on labels (including alias behaviour).
+  * Label format validation before sync.
+  * Dependency and security updates (got, mocha, etc.).
+  * README/requirements updated for Node 20+.
+
 ## 2.0.0 (2020-06-03)
 
   * Drop support for node 4,5,6,7,8,9,10,11.

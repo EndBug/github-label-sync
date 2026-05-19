@@ -1,6 +1,8 @@
-# GitHub Label Sync [![NPM version](https://img.shields.io/npm/v/github-label-sync.svg)](https://www.npmjs.com/package/github-label-sync) [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)][license]
+# GitHub Label Sync [![NPM version](https://img.shields.io/npm/v/@endbug/github-label-sync.svg)](https://www.npmjs.com/package/@endbug/github-label-sync) [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)][license]
 
 Synchronise your GitHub labels with as few destructive operations as possible – similar labels get renamed.
+
+> **Fork:** This is a community fork of [Financial Times `github-label-sync`](https://github.com/Financial-Times/github-label-sync) (upstream is no longer publicly maintained). It is published on npm as **`@endbug/github-label-sync`**; the CLI binary is still `github-label-sync`.
 
 ## Table Of Contents
 
@@ -21,7 +23,7 @@ You'll need [Node.js][node] 20+ installed to run GitHub Label Sync. You'll also 
 Install GitHub Label Sync globally with [npm][npm]:
 
 ```sh
-npm install -g github-label-sync
+npm install -g @endbug/github-label-sync
 ```
 
 This installs the `github-label-sync` command-line tool:
@@ -74,13 +76,13 @@ github-label-sync --access-token xxxxxx --allow-added-labels myname/myrepo
 Install GitHub Label Sync with [npm][npm] or add to your `package.json`:
 
 ```
-npm install github-label-sync
+npm install @endbug/github-label-sync
 ```
 
 Require GitHub Label Sync:
 
 ```js
-var githubLabelSync = require('github-label-sync');
+var githubLabelSync = require('@endbug/github-label-sync');
 ```
 
 The `githubLabelSync` function returns a promise that resolves to a JSON diff between the labels found on GitHub, and the labels in your label config.
@@ -256,18 +258,18 @@ On the command-line this can be set with the `labels` flag which should point to
 
 ### `repo`
 
-_String_. The GitHub repo to sync labels to. This should include the user and repo names, e.g. "Financial-Times/ft-origami".
+_String_. The GitHub repo to sync labels to. This should include the user and repo names, e.g. "EndBug/github-label-sync".
 
 ```js
 githubLabelSync({
-    repo: 'Financial-Times/ft-origami'
+    repo: 'EndBug/github-label-sync'
 });
 ```
 
 The command-line accepts the repo as an argument after the options:
 
 ```
-github-label-sync Financial-Times/ft-origami
+github-label-sync EndBug/github-label-sync
 ```
 
 ## Contributing
@@ -285,7 +287,7 @@ npm run test-coverage  # run the unit tests with coverage reporting
 
 ## License
 
-This software is published by the Financial Times under the [MIT licence][license].
+This software is maintained by [EndBug](https://github.com/EndBug) under the [MIT licence][license]. It was originally created by the Financial Times.
 
 [access-tokens]: https://github.com/settings/tokens
 [license]: http://opensource.org/licenses/MIT
