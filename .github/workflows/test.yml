@@ -9,5 +9,4 @@ jobs:
       with:
         node-version: 22.x
     - run: npm install
-    - run: make verify
-    - run: make test
+    - run: npm test

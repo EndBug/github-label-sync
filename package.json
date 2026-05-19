@@ -14,7 +14,6 @@
   "main": "lib/github-label-sync.js",
   "bin": "bin/github-label-sync.js",
   "dependencies": {
-    "@financial-times/origami-service-makefile": "^7.0.3",
     "ajv": "^8.6.3",
     "chalk": "^4.1.2",
     "commander": "^6.2.1",
