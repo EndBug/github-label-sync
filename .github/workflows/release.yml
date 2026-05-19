@@ -8,6 +8,7 @@ permissions:
   # See https://docs.npmjs.com/trusted-publishers
   id-token: write
   contents: read
+  packages: write
 
 jobs:
   publish-npm:
