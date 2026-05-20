@@ -23,7 +23,7 @@ You'll need [Node.js][node] 20+ installed to run GitHub Label Sync. You'll also 
 Install GitHub Label Sync globally with [npm][npm]:
 
 ```sh
-npm install -g @endbug/github-label-sync
+pnpm add -g @endbug/github-label-sync
 ```
 
 This installs the `github-label-sync` command-line tool:
@@ -77,7 +77,7 @@ github-label-sync --access-token xxxxxx --allow-added-labels myname/myrepo
 Install GitHub Label Sync with [npm][npm] or add to your `package.json`:
 
 ```
-npm install @endbug/github-label-sync
+pnpm add @endbug/github-label-sync
 ```
 
 Require GitHub Label Sync (CommonJS):
@@ -286,10 +286,10 @@ To contribute to GitHub Label Sync, clone this repo locally and commit your code
 Please write unit tests for your code, and check that everything works by running the following before opening a pull-request:
 
 ```sh
-npm test               # run the full test suite
-npm run lint           # run the linter
-npm run test:unit      # run the unit tests
-npm run test:coverage  # run the unit tests with coverage reporting
+pnpm test               # run the full test suite
+pnpm lint               # run the linter
+pnpm test:unit          # run the unit tests
+pnpm test:coverage      # run the unit tests with coverage reporting
 ```
 
 ## License
