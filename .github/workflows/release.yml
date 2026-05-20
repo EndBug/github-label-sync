@@ -23,9 +23,9 @@ jobs:
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
-          package-manager-cache: false
 
       - run: npm ci
+      - run: npm run build
       - run: npm publish
 
   publish-gpr:
@@ -41,9 +41,9 @@ jobs:
           node-version: 22.x
           registry-url: https://npm.pkg.github.com/
           scope: '@endbug'
-          package-manager-cache: false
 
       - run: npm ci
+      - run: npm run build
 
       - run: npm publish
         env:
