@@ -58,13 +58,10 @@ export class ApiClient {
 
   async getLabeledIssues(repo: string, labelName: string): Promise<GitHubIssue[]> {
     const [owner, repoName] = splitRepo(repo);
-    return this.octokit.paginate(this.octokit.rest.issues.listForRepo, {
-      owner,
-      repo: repoName,
-      labels: labelName,
-      state: 'all',
-      per_page: 100,
-    }) as Promise<GitHubIssue[]>;
+    return this.octokit.paginate(
+      'GET /repos/{owner}/{repo}/issues',
+      { owner, repo: repoName, labels: labelName, state: 'all', per_page: 100 },
+    ) as Promise<GitHubIssue[]>;
   }
 
   async labelIssue(repo: string, issueNumber: number, labelName: string): Promise<void> {

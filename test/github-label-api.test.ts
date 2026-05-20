@@ -146,7 +146,7 @@ describe('ApiClient', () => {
       mockOctokit.paginate.mockResolvedValue(issues);
       const result = await client.getLabeledIssues(repo, 'foo');
       expect(mockOctokit.paginate).toHaveBeenCalledWith(
-        mockIssues.listForRepo,
+        'GET /repos/{owner}/{repo}/issues',
         { owner: 'foo', repo: 'bar', labels: 'foo', state: 'all', per_page: 100 },
       );
       expect(result).toEqual(issues);
