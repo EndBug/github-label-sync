@@ -80,10 +80,16 @@ Install GitHub Label Sync with [npm][npm] or add to your `package.json`:
 npm install @endbug/github-label-sync
 ```
 
-Require GitHub Label Sync:
+Require GitHub Label Sync (CommonJS):
 
 ```js
-var githubLabelSync = require('@endbug/github-label-sync');
+const githubLabelSync = require('@endbug/github-label-sync');
+```
+
+Or with ESM/TypeScript:
+
+```ts
+import githubLabelSync from '@endbug/github-label-sync';
 ```
 
 The `githubLabelSync` function returns a promise that resolves to a JSON diff between the labels found on GitHub, and the labels in your label config.
@@ -192,7 +198,7 @@ For example, given the following config, GitHub Label Sync will look for labels 
 }
 ```
 
-You can find a full example label configuration in this repository ([JSON](labels.json) / [YAML](labels.yml)).
+You can find a full example label configuration in this repository ([YAML](labels.yml)).
 
 ## Configuration
 
