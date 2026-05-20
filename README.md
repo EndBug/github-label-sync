@@ -39,6 +39,7 @@ Options:
   -l, --labels <path>         the path or URL to look for the label configuration in. Default: labels.json
   -d, --dry-run               calculate the required label changes but do not apply them
   -A, --allow-added-labels    allow additional labels in the repo, and don't delete them
+  -e, --endpoint <url>        specify a GitHub enterprise installation
 ```
 
 Run GitHub Label Sync on a repo (reading [label data](#label-config-file) from a local `labels.json`):
@@ -281,8 +282,8 @@ Please write unit tests for your code, and check that everything works by runnin
 ```sh
 npm test               # run the full test suite
 npm run lint           # run the linter
-npm run test-unit      # run the unit tests
-npm run test-coverage  # run the unit tests with coverage reporting
+npm run test:unit      # run the unit tests
+npm run test:coverage  # run the unit tests with coverage reporting
 ```
 
 ## License

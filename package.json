@@ -1,5 +1,6 @@
 {
   "name": "@endbug/github-label-sync",
+  "version": "4.0.0",
   "description": "Synchronise your GitHub labels with as few destructive operations as possible",
   "repository": {
     "type": "git",
@@ -11,35 +12,59 @@
     "access": "public"
   },
   "license": "MIT",
-  "main": "lib/github-label-sync.js",
-  "bin": "bin/github-label-sync.js",
+  "type": "module",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "bin": {
+    "github-label-sync": "./dist/cjs/bin.cjs"
+  },
+  "files": [
+    "dist/cjs",
+    "dist/esm"
+  ],
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "ajv": "^8.6.3",
     "chalk": "^4.1.2",
-    "commander": "^6.2.1",
+    "commander": "^12.1.0",
     "got": "^12.5.3",
-    "js-yaml": "^3.14.1",
-    "node.extend": "^2.0.2",
-    "octonode": "^0.10.2"
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
-    "eslint": "^7.25.0",
-    "istanbul": "~0.4",
-    "mocha": "^10.8.2",
-    "mockery": "^2",
-    "proclaim": "^3",
-    "sinon": "^1",
-    "sinon-as-promised": "^4"
+    "@eslint/js": "^9.39.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.19.19",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.39.4",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.4",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "npm run lint && npm run test-coverage",
-    "test-unit": "NODE_ENV=test ./node_modules/.bin/mocha ./test/unit --recursive",
-    "test-instrument": "NODE_ENV=test ./node_modules/.bin/istanbul cover ./node_modules/mocha/bin/_mocha -- ./test/unit --recursive",
-    "test-coverage": "npm run test-instrument && ./node_modules/.bin/istanbul check-coverage --statement 90 --branch 90 --function 90",
-    "lint": "./node_modules/.bin/eslint ."
-  },
-  "version": "3.0.0"
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run lint && npm run test:coverage && npm run build && npm run test:smoke",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:smoke": "node -e \"const githubLabelSync = require('.'); if (typeof githubLabelSync !== 'function') throw new Error('CommonJS export is not callable'); if (!githubLabelSync.defaults) throw new Error('CommonJS defaults missing');\" && node -e \"import('@endbug/github-label-sync').then((mod) => { if (typeof mod.default !== 'function') throw new Error('ESM default export missing'); if (typeof mod.githubLabelSync !== 'function') throw new Error('ESM named export missing'); })\" && node -e \"const { spawnSync } = require('node:child_process'); const result = spawnSync(process.execPath, ['dist/cjs/bin.cjs', '--help'], { encoding: 'utf8' }); if (result.status !== 0) throw new Error(result.stderr); if (!result.stdout.includes('Usage: github-label-sync')) throw new Error(result.stdout);\"",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run build"
+  }
 }
