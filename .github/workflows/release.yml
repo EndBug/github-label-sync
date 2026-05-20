@@ -16,35 +16,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+          version: 11
 
       - name: Set up Node.js for NPM
         uses: actions/setup-node@v6
         with:
-          node-version: 22.x
+          node-version: 24.x
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
-      - run: npm ci
-      - run: npm publish
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm publish --no-git-checks
 
   publish-gpr:
     name: Publish on GPR
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+          version: 11
 
       - name: Set up Node.js for GPR
         uses: actions/setup-node@v6
         with:
-          node-version: 22.x
+          node-version: 24.x
           registry-url: https://npm.pkg.github.com/
-          scope: '@endbug'
           package-manager-cache: false
+          scope: '@endbug'
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
 
-      - run: npm publish
+      - run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
