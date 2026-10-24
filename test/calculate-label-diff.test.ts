@@ -216,6 +216,31 @@ describe('calculateLabelDiff', () => {
     });
   });
 
+  describe('when a configured label omits color and the repo label is otherwise unchanged', () => {
+    it('should not add an entry to the returned diff', () => {
+      const diff = calculateLabelDiff(
+        [{ name: 'foo', color: 'ff0000' }],
+        [{ name: 'foo' }],
+      );
+      expect(diff).toHaveLength(0);
+    });
+  });
+
+  describe('when a configured label omits color but the name changes', () => {
+    it('should keep the repo color on the expected label', () => {
+      const diff = calculateLabelDiff(
+        [{ name: 'FOO', color: 'ff0000' }],
+        [{ name: 'foo' }],
+      );
+      expect(diff).toEqual([{
+        name: 'FOO',
+        type: 'changed',
+        actual: { name: 'FOO', color: 'ff0000' },
+        expected: { name: 'foo', color: 'ff0000' },
+      }]);
+    });
+  });
+
   describe('when a label changes in color but keeps the same non-empty description', () => {
     it('should add a "changed" entry including the description on both sides', () => {
       const diff = calculateLabelDiff(

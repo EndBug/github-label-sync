@@ -72,6 +72,12 @@ describe('ApiClient', () => {
       await expect(client.getLabels('invalidrepo')).rejects.toThrow('Invalid repo format');
     });
 
+    it('should throw when the repo has more than two path segments', async () => {
+      await expect(client.getLabels('foo/bar/extra')).rejects.toThrow('Invalid repo format');
+      await expect(client.getLabels('foo/bar/')).rejects.toThrow('Invalid repo format');
+      expect(mockOctokit.paginate).not.toHaveBeenCalled();
+    });
+
     it('should reject when paginate rejects', async () => {
       mockOctokit.paginate.mockRejectedValue(new Error('API error'));
       await expect(client.getLabels(repo)).rejects.toThrow('API error');
@@ -97,6 +103,16 @@ describe('ApiClient', () => {
       expect(mockIssues.createLabel).toHaveBeenCalledWith(
         expect.objectContaining({ description: '' }),
       );
+    });
+
+    it('should omit color when the configured color is empty', async () => {
+      mockIssues.createLabel.mockResolvedValue({ data: createdLabel });
+      await client.createLabel(repo, { name: 'foo', color: '' });
+      expect(mockIssues.createLabel).toHaveBeenCalledWith({
+        owner: 'foo',
+        repo: 'bar',
+        name: 'foo',
+      });
     });
 
     it('should reject when the API call rejects', async () => {
@@ -132,6 +148,16 @@ describe('ApiClient', () => {
       expect(mockIssues.updateLabel).toHaveBeenCalledWith(
         expect.objectContaining({ description: '' }),
       );
+    });
+
+    it('should omit color when the configured color is empty', async () => {
+      mockIssues.updateLabel.mockResolvedValue({ data: { name: 'foo', color: 'ededed' } });
+      await client.updateLabel(repo, 'foo', { name: 'foo', color: '' });
+      expect(mockIssues.updateLabel).toHaveBeenCalledWith({
+        owner: 'foo',
+        repo: 'bar',
+        name: 'foo',
+      });
     });
 
     it('should reject when the API call rejects', async () => {

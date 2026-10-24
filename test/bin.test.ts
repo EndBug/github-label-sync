@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LabelFileError, merge, readLabels } from '../src/bin';
+import { pathToFileURL } from 'node:url';
+import { isExecutedModule, LabelFileError, merge, readLabels } from '../src/bin';
 
 function createTempDir(): string {
   return mkdtempSync(join(tmpdir(), 'github-label-sync-'));
@@ -77,5 +78,51 @@ describe('CLI label merging', () => {
       { name: 'ignored', color: 'ff0000' } as unknown as [],
       [{ name: 'foo', color: '00ff00' }],
     ])).toEqual([{ name: 'foo', color: '00ff00' }]);
+  });
+
+  it('should accept label names that exist on Object.prototype', () => {
+    expect(merge([[
+      { name: 'constructor', color: 'ff0000' },
+      { name: 'toString', color: '00ff00' },
+      { name: '__proto__', color: '0000ff' },
+    ]])).toEqual([
+      { name: 'constructor', color: 'ff0000' },
+      { name: 'toString', color: '00ff00' },
+      { name: '__proto__', color: '0000ff' },
+    ]);
+  });
+
+  it('should still reject conflicting prototype-named labels', () => {
+    expect(() => merge([
+      [{ name: 'constructor', color: 'ff0000' }],
+      [{ name: 'constructor', color: '00ff00' }],
+    ])).toThrow(LabelFileError);
+  });
+});
+
+describe('CLI direct-run detection', () => {
+  it('should treat a symlink to the module as the same file', () => {
+    const dir = createTempDir();
+    const target = join(dir, 'bin.cjs');
+    const link = join(dir, 'github-label-sync');
+    writeFileSync(target, '');
+    symlinkSync(target, link);
+
+    expect(isExecutedModule(pathToFileURL(target).href, link)).toBe(true);
+  });
+
+  it('should reject a different file', () => {
+    const dir = createTempDir();
+    const target = join(dir, 'bin.cjs');
+    const other = join(dir, 'other.cjs');
+    writeFileSync(target, '');
+    writeFileSync(other, '');
+
+    expect(isExecutedModule(pathToFileURL(target).href, other)).toBe(false);
+  });
+
+  it('should reject a missing path', () => {
+    expect(isExecutedModule('file:///tmp/github-label-sync-missing.cjs', undefined)).toBe(false);
+    expect(isExecutedModule('file:///tmp/github-label-sync-missing.cjs', '/tmp/github-label-sync-does-not-exist')).toBe(false);
   });
 });

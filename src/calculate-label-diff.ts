@@ -36,7 +36,7 @@ export default function calculateLabelDiff(
 
       if (
         configuredLabel.name !== matchedLabel.name ||
-        configuredLabel.color !== matchedLabel.color ||
+        colorsDiffer(configuredLabel, matchedLabel) ||
         configuredDescription !== matchedDescription
       ) {
         if (index === 0) {
@@ -57,6 +57,15 @@ export default function calculateLabelDiff(
     });
 
   return diff;
+}
+
+function colorsDiffer(configuredLabel: ConfiguredLabel, matchedLabel: GitHubLabel): boolean {
+  // Color is optional. An omitted value means "leave the repo color alone",
+  // matching the way an omitted description keeps the current description.
+  if (!configuredLabel.color) {
+    return false;
+  }
+  return configuredLabel.color !== matchedLabel.color;
 }
 
 function getLabelDescription(label: GitHubLabel | ConfiguredLabel, fallback = ''): string {
@@ -93,7 +102,7 @@ function createChangedEntry(actualLabel: GitHubLabel, expectedLabel: ConfiguredL
     },
     expected: {
       name: expectedLabel.name,
-      color: expectedLabel.color ?? '',
+      color: expectedLabel.color || actualLabel.color,
     },
   };
 

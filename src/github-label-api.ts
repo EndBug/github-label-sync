@@ -37,7 +37,9 @@ export class ApiClient {
       owner,
       repo: repoName,
       name: label.name,
-      color: label.color,
+      // An omitted config color is stored as ''. Sending that rejects the request;
+      // leaving it out lets GitHub apply its default.
+      ...(label.color ? { color: label.color } : {}),
       ...(label.description !== undefined ? { description: label.description } : {}),
     });
     return toGitHubLabel(data);
@@ -49,7 +51,9 @@ export class ApiClient {
       owner,
       repo: repoName,
       name: labelName,
-      color: label.color,
+      // An empty color is the diff's stand-in for "not configured". Omitting it
+      // keeps the color already on the label instead of failing validation.
+      ...(label.color ? { color: label.color } : {}),
       ...(label.name !== labelName ? { new_name: label.name } : {}),
       ...(label.description !== undefined ? { description: label.description } : {}),
     });
@@ -85,8 +89,11 @@ export class ApiClient {
 }
 
 function splitRepo(repo: string): [string, string] {
-  const [owner, repoName] = repo.split('/');
-  if (!owner || !repoName) {
+  const parts = repo.split('/');
+  const owner = parts[0];
+  const repoName = parts[1];
+  // Extra segments used to be discarded, so "owner/repo/extra" synced owner/repo.
+  if (parts.length !== 2 || !owner || !repoName) {
     throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
   }
   return [owner, repoName];

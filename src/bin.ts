@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import chalk from 'chalk';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -113,7 +113,9 @@ const format = {
 };
 
 export function merge(files: ConfiguredLabel[][]): ConfiguredLabel[] {
-  const data: Record<string, ConfiguredLabel> = {};
+  // A plain object treats names such as "constructor" and "toString" as inherited
+  // properties, so a single real label with one of those names looks like a duplicate.
+  const data = new Map<string, ConfiguredLabel>();
   const labels: ConfiguredLabel[] = [];
 
   files.forEach((file) => {
@@ -121,22 +123,22 @@ export function merge(files: ConfiguredLabel[][]): ConfiguredLabel[] {
       return;
     }
     file.forEach((label) => {
-      const existing = data[label.name];
+      const existing = data.get(label.name);
       if (existing === undefined) {
-        data[label.name] = label;
+        data.set(label.name, label);
       } else if (JSON.stringify(existing) !== JSON.stringify(label)) {
         throw new LabelFileError(`Conflicting label names were found: ${label.name}`);
       }
     });
   });
 
-  Object.values(data).forEach((label) => {
+  for (const label of data.values()) {
     const color = String(label.color);
     if (color.startsWith('#')) {
       label.color = color.replace('#', '');
     }
     labels.push(label);
-  });
+  }
 
   return labels;
 }
@@ -229,8 +231,22 @@ function handleError(error: unknown): void {
   process.exit(1);
 }
 
+export function isExecutedModule(moduleUrl: string, executedPath: string | undefined): boolean {
+  if (executedPath === undefined) {
+    return false;
+  }
+
+  try {
+    // argv keeps the symlink path used to launch an installed bin, while the
+    // module URL is the real file. Compare canonical paths so both match.
+    return realpathSync(executedPath) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
 function isDirectRun(): boolean {
-  return process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+  return isExecutedModule(import.meta.url, process.argv[1]);
 }
 
 if (isDirectRun()) {
