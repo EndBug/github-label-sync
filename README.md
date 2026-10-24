@@ -23,7 +23,7 @@ You'll need [Node.js][node] 20+ installed to run GitHub Label Sync. You'll also 
 Install GitHub Label Sync globally with [npm][npm]:
 
 ```sh
-npm install -g @endbug/github-label-sync
+pnpm add -g @endbug/github-label-sync
 ```
 
 This installs the `github-label-sync` command-line tool:
@@ -39,6 +39,7 @@ Options:
   -l, --labels <path>         the path or URL to look for the label configuration in. Default: labels.json
   -d, --dry-run               calculate the required label changes but do not apply them
   -A, --allow-added-labels    allow additional labels in the repo, and don't delete them
+  -e, --endpoint <url>        specify a GitHub enterprise installation
 ```
 
 Run GitHub Label Sync on a repo (reading [label data](#label-config-file) from a local `labels.json`):
@@ -76,13 +77,19 @@ github-label-sync --access-token xxxxxx --allow-added-labels myname/myrepo
 Install GitHub Label Sync with [npm][npm] or add to your `package.json`:
 
 ```
-npm install @endbug/github-label-sync
+pnpm add @endbug/github-label-sync
 ```
 
-Require GitHub Label Sync:
+Require GitHub Label Sync (CommonJS):
 
 ```js
-var githubLabelSync = require('@endbug/github-label-sync');
+const githubLabelSync = require('@endbug/github-label-sync');
+```
+
+Or with ESM/TypeScript:
+
+```ts
+import githubLabelSync from '@endbug/github-label-sync';
 ```
 
 The `githubLabelSync` function returns a promise that resolves to a JSON diff between the labels found on GitHub, and the labels in your label config.
@@ -191,7 +198,7 @@ For example, given the following config, GitHub Label Sync will look for labels 
 }
 ```
 
-You can find a full example label configuration in this repository ([JSON](labels.json) / [YAML](labels.yml)).
+You can find a full example label configuration in this repository ([YAML](labels.yml)).
 
 ## Configuration
 
@@ -279,10 +286,10 @@ To contribute to GitHub Label Sync, clone this repo locally and commit your code
 Please write unit tests for your code, and check that everything works by running the following before opening a pull-request:
 
 ```sh
-npm test               # run the full test suite
-npm run lint           # run the linter
-npm run test-unit      # run the unit tests
-npm run test-coverage  # run the unit tests with coverage reporting
+pnpm test               # run the full test suite
+pnpm lint               # run the linter
+pnpm test:unit          # run the unit tests
+pnpm test:coverage      # run the unit tests with coverage reporting
 ```
 
 ## License
