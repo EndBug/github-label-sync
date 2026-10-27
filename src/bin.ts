@@ -3,13 +3,15 @@
 import chalk from 'chalk';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { homedir } from 'node:os';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import yaml from 'js-yaml';
 import { githubLabelSync } from './index.js';
 import type { ConfiguredLabel } from './index.js';
 import { isRequestError } from './github-label-api.js';
+import { normalizeConfiguredLabel } from './label-color.js';
 
 const _require = createRequire(import.meta.url);
 
@@ -30,51 +32,73 @@ export function getLabelFiles(value: string, previous: string[]): string[] {
 const yamlRegex = /\.ya?ml$/ui;
 const jsonRegex = /\.json$/ui;
 
-export async function readLabels(labelPaths: string[] = [], cwd = process.cwd()): Promise<ConfiguredLabel[][]> {
+export async function readLabels(
+  labelPaths: string[] = [],
+  cwd = process.cwd(),
+  resolveHome: () => string = homedir,
+): Promise<ConfiguredLabel[][]> {
   if (labelPaths.length === 0) {
     labelPaths = ['labels.json'];
   }
 
-  const files = labelPaths.map((file) => readLabelFile(file, cwd));
+  const files = labelPaths.map((file) => readLabelFile(file, cwd, resolveHome));
   return Promise.all(files);
 }
 
-async function readLabelFile(file: string, cwd: string): Promise<ConfiguredLabel[]> {
+async function readLabelFile(file: string, cwd: string, resolveHome: () => string): Promise<ConfiguredLabel[]> {
   if (file.startsWith('http://') || file.startsWith('https://')) {
     const isYaml = yamlRegex.test(file);
 
     try {
-      return await import('got').then(({ got }) =>
+      const parsed = await import('got').then(({ got }) =>
         isYaml
-          ? got(file).text().then(body => yaml.load(body) as ConfiguredLabel[])
-          : got(file).json<ConfiguredLabel[]>(),
+          ? got(file).text().then(body => yaml.load(body))
+          : got(file).json(),
       );
-    } catch {
+      return assertLabelArray(parsed, file);
+    } catch (error) {
+      if (error instanceof LabelFileError) {
+        throw error;
+      }
       throw new LabelFileError(`Downloading labels from ${file} failed`);
     }
   }
 
-  const resolvedFile = resolveLabelPath(file, cwd);
-
+  let resolvedFile = file;
   try {
-    if (yamlRegex.test(resolvedFile)) {
-      return yaml.load(readFileSync(resolvedFile, 'utf8')) as ConfiguredLabel[];
+    resolvedFile = resolveLabelPath(file, cwd, resolveHome);
+    const parsed = yamlRegex.test(resolvedFile)
+      ? yaml.load(readFileSync(resolvedFile, 'utf8'))
+      : jsonRegex.test(resolvedFile)
+        ? JSON.parse(readFileSync(resolvedFile, 'utf8'))
+        : await loadJavaScriptLabels(resolvedFile);
+    return assertLabelArray(parsed, resolvedFile);
+  } catch (error) {
+    if (error instanceof LabelFileError) {
+      throw error;
     }
-    if (jsonRegex.test(resolvedFile)) {
-      return JSON.parse(readFileSync(resolvedFile, 'utf8')) as ConfiguredLabel[];
-    }
-
-    return await loadJavaScriptLabels(resolvedFile);
-  } catch {
     throw new LabelFileError(`No labels were found in ${resolvedFile}`);
   }
 }
 
-function resolveLabelPath(file: string, cwd: string): string {
-  if (isAbsolute(file) || file.startsWith('~')) {
+export function resolveLabelPath(file: string, cwd: string, resolveHome: () => string = homedir): string {
+  if (file === '~') {
+    return resolveHome();
+  }
+  if (file.startsWith('~/') || file.startsWith('~\\')) {
+    return resolve(resolveHome(), file.slice(2));
+  }
+  if (isAbsolute(file)) {
     return file;
   }
   return resolve(cwd, file);
+}
+
+function assertLabelArray(value: unknown, source: string): ConfiguredLabel[] {
+  if (!Array.isArray(value)) {
+    throw new LabelFileError(`Label file ${source} must be an array of labels`);
+  }
+  return value as ConfiguredLabel[];
 }
 
 async function loadJavaScriptLabels(file: string): Promise<ConfiguredLabel[]> {
@@ -116,34 +140,26 @@ export function merge(files: ConfiguredLabel[][]): ConfiguredLabel[] {
   // A plain object treats names such as "constructor" and "toString" as inherited
   // properties, so a single real label with one of those names looks like a duplicate.
   const data = new Map<string, ConfiguredLabel>();
-  const labels: ConfiguredLabel[] = [];
 
   files.forEach((file) => {
     if (!Array.isArray(file)) {
-      return;
+      throw new LabelFileError('Label file must contain an array of labels');
     }
     file.forEach((label) => {
-      const existing = data.get(label.name);
+      const normalized = normalizeConfiguredLabel(label);
+      const existing = data.get(normalized.name);
       if (existing === undefined) {
-        data.set(label.name, label);
-      } else if (JSON.stringify(existing) !== JSON.stringify(label)) {
-        throw new LabelFileError(`Conflicting label names were found: ${label.name}`);
+        data.set(normalized.name, normalized);
+      } else if (JSON.stringify(existing) !== JSON.stringify(normalized)) {
+        throw new LabelFileError(`Conflicting label names were found: ${normalized.name}`);
       }
     });
   });
 
-  for (const label of data.values()) {
-    const color = String(label.color);
-    if (color.startsWith('#')) {
-      label.color = color.replace('#', '');
-    }
-    labels.push(label);
-  }
-
-  return labels;
+  return [...data.values()];
 }
 
-function createProgram(): Command {
+export function createProgram(): Command {
   return new Command()
     .name('github-label-sync')
     .version(readPackageVersion())
@@ -153,11 +169,11 @@ function createProgram(): Command {
       'a GitHub access token (also settable with a GITHUB_ACCESS_TOKEN environment variable)',
       process.env['GITHUB_ACCESS_TOKEN'],
     )
-    .option(
-      '-l, --labels <path>',
-      'the path or URL to look for the label configuration in. Default: labels.json',
-      getLabelFiles,
-      [],
+    .addOption(
+      new Option(
+        '-l, --labels <path>',
+        'the path or URL to look for the label configuration in',
+      ).default([], 'labels.json').argParser(getLabelFiles),
     )
     .option(
       '-d, --dry-run',
@@ -169,15 +185,14 @@ function createProgram(): Command {
     )
     .option(
       '-e, --endpoint <url>',
-      'specify a GitHub enterprise installation',
+      'GitHub Enterprise host or URL, for example mydomain.com or https://mydomain.com/api/v3',
     );
 }
 
-function readPackageVersion(): string {
-  const currentDir = dirname(fileURLToPath(import.meta.url));
+export function readPackageVersion(startDir = dirname(fileURLToPath(import.meta.url))): string {
   const packageJsonPaths = [
-    resolve(currentDir, '../package.json'),
-    resolve(currentDir, '../../package.json'),
+    resolve(startDir, '../package.json'),
+    resolve(startDir, '../../package.json'),
   ];
 
   for (const packageJsonPath of packageJsonPaths) {
@@ -218,7 +233,7 @@ export async function main(argv = process.argv): Promise<void> {
   await githubLabelSync(options);
 }
 
-function handleError(error: unknown): void {
+export function handleError(error: unknown): void {
   if (error instanceof LabelFileError) {
     console.error(chalk.red(error.message));
   } else if (isRequestError(error)) {

@@ -256,6 +256,111 @@ describe('calculateLabelDiff', () => {
     });
   });
 
+  describe('when an alias repeats the configured label name', () => {
+    it('renames a case-only alias once and does not merge', () => {
+      const diff = calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'Bug', color: 'ff0000', aliases: ['bug'] }],
+      );
+      expect(diff).toEqual([{
+        name: 'bug',
+        type: 'changed',
+        actual: { name: 'bug', color: 'ff0000' },
+        expected: { name: 'Bug', color: 'ff0000' },
+      }]);
+    });
+
+    it('updates the color once when the alias repeats the current name', () => {
+      const diff = calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'bug', color: '00ff00', aliases: ['bug'] }],
+      );
+      expect(diff).toEqual([{
+        name: 'bug',
+        type: 'changed',
+        actual: { name: 'bug', color: 'ff0000' },
+        expected: { name: 'bug', color: '00ff00' },
+      }]);
+    });
+
+    it('produces an empty diff when nothing else changed', () => {
+      const diff = calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'bug', color: 'ff0000', aliases: ['bug'] }],
+      );
+      expect(diff).toEqual([]);
+    });
+
+    it('schedules one delete when the alias repeats a label marked for deletion', () => {
+      const diff = calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'bug', delete: true, aliases: ['bug'] }],
+      );
+      expect(diff).toEqual([{
+        name: 'bug',
+        type: 'added',
+        actual: { name: 'bug', color: 'ff0000' },
+        expected: null,
+      }]);
+    });
+  });
+
+  describe('when the configured color differs only by hex case or a leading hash', () => {
+    it('does not record a diff for uppercase hex', () => {
+      expect(calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'bug', color: 'FF0000' }],
+      )).toEqual([]);
+    });
+
+    it('does not record a diff for a leading hash', () => {
+      expect(calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'bug', color: '#ff0000' }],
+      )).toEqual([]);
+    });
+
+    it('records a real color change in lowercase', () => {
+      expect(calculateLabelDiff(
+        [{ name: 'bug', color: 'ff0000' }],
+        [{ name: 'bug', color: '00FF00' }],
+      )).toEqual([{
+        name: 'bug',
+        type: 'changed',
+        actual: { name: 'bug', color: 'ff0000' },
+        expected: { name: 'bug', color: '00ff00' },
+      }]);
+    });
+
+    it('keeps an omitted color unchanged', () => {
+      expect(calculateLabelDiff(
+        [{ name: 'foo', color: 'ff0000' }],
+        [{ name: 'foo' }],
+      )).toEqual([]);
+    });
+
+    it('normalizes the color stored for a missing label', () => {
+      expect(calculateLabelDiff([], [{ name: 'bug', color: '#FF0000' }])).toEqual([{
+        name: 'bug',
+        type: 'missing',
+        actual: null,
+        expected: { name: 'bug', color: 'ff0000' },
+      }]);
+    });
+
+    it('renames once when the name case changes and the hex case differs', () => {
+      expect(calculateLabelDiff(
+        [{ name: 'FOO', color: 'ff0000' }],
+        [{ name: 'foo', color: 'FF0000' }],
+      )).toEqual([{
+        name: 'FOO',
+        type: 'changed',
+        actual: { name: 'FOO', color: 'ff0000' },
+        expected: { name: 'foo', color: 'ff0000' },
+      }]);
+    });
+  });
+
   describe('when a range of diffs are expected', () => {
     it('should add all expected entries', () => {
       const current: GitHubLabel[] = [

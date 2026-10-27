@@ -106,15 +106,61 @@ describe('actionLabelDiff', () => {
     });
   });
 
-  it('should convert "added" diff entries to delete promises', () => {
-    const deletePromise = Promise.resolve(undefined);
-    vi.mocked(apiClient.deleteLabel).mockReturnValue(deletePromise);
+  it('should convert "added" diff entries to delete promises', async () => {
+    vi.mocked(apiClient.deleteLabel).mockResolvedValue(undefined);
     options.diff.push({ name: 'foo', type: 'added', actual: { name: 'foo', color: 'ff0000', description: 'bar' }, expected: null });
 
     const actions = actionLabelDiff(options);
     expect(actions).toHaveLength(1);
-    expect(apiClient.deleteLabel).toHaveBeenCalledWith(options.repo, options.diff[0]!.name);
-    expect(actions[0]).toBe(deletePromise);
+    await actions[0];
+    expect(apiClient.deleteLabel).toHaveBeenCalledWith(options.repo, 'foo');
+  });
+
+  it('should create or rename the destination label before a merge adds it', async () => {
+    let renamed = false;
+    let releaseUpdate: () => void = () => {};
+    const updateStarted = new Promise<void>((resolve) => {
+      releaseUpdate = resolve;
+    });
+    vi.mocked(apiClient.updateLabel).mockImplementation(() => updateStarted.then(() => {
+      renamed = true;
+      return { name: 'type: feature', color: '00ff00' };
+    }));
+    vi.mocked(apiClient.getLabeledIssues).mockResolvedValue([{ number: 1, labels: [{ name: 'feature' }] }]);
+    vi.mocked(apiClient.labelIssue).mockImplementation(async () => {
+      if (!renamed) {
+        throw new Error('destination label does not exist yet');
+      }
+    });
+    vi.mocked(apiClient.deleteLabel).mockResolvedValue(undefined);
+
+    options.diff.push(
+      {
+        name: 'enhancement',
+        type: 'changed',
+        actual: { name: 'enhancement', color: '00ff00' },
+        expected: { name: 'type: feature', color: '00ff00' },
+      },
+      {
+        name: 'feature',
+        type: 'merge',
+        actual: { name: 'feature', color: '00ff00' },
+        expected: { name: 'type: feature', color: '00ff00' },
+      },
+    );
+
+    const actions = actionLabelDiff(options);
+    expect(apiClient.labelIssue).not.toHaveBeenCalled();
+    releaseUpdate();
+    await Promise.all(actions);
+
+    expect(apiClient.updateLabel).toHaveBeenCalled();
+    expect(apiClient.labelIssue).toHaveBeenCalledWith(options.repo, 1, 'type: feature');
+    const updateOrder = vi.mocked(apiClient.updateLabel).mock.invocationCallOrder[0];
+    const labelOrder = vi.mocked(apiClient.labelIssue).mock.invocationCallOrder[0];
+    const deleteOrder = vi.mocked(apiClient.deleteLabel).mock.invocationCallOrder[0];
+    expect(updateOrder).toBeLessThan(labelOrder!);
+    expect(labelOrder).toBeLessThan(deleteOrder!);
   });
 
   it('should filter out invalid entries', () => {
