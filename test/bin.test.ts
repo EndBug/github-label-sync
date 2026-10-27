@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { got } from 'got';
 import {
   createProgram,
@@ -16,6 +16,7 @@ import {
   resolveLabelPath,
 } from '../src/bin';
 import { githubLabelSync } from '../src/index';
+import validateLabelFormat from '../src/validate-label-format';
 
 vi.mock('got', () => ({
   got: vi.fn(),
@@ -218,6 +219,17 @@ describe('CLI label file shape', () => {
     await expect(readLabels(['ok.json', 'bad.json'], cwd)).rejects.toThrow(LabelFileError);
   });
 
+  it('should load the repository labels.yml example', async () => {
+    const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+    const [labels] = await readLabels(['labels.yml'], repoRoot);
+    expect(labels?.length).toBeGreaterThan(1);
+    expect(labels?.some((label) => label.delete === true)).toBe(true);
+    expect(labels?.some((label) => (label.aliases?.length ?? 0) > 0)).toBe(true);
+    for (const label of labels ?? []) {
+      expect(validateLabelFormat(label)).toBe(true);
+    }
+  });
+
   it('should read an absolute label path', async () => {
     const cwd = createTempDir();
     const other = createTempDir();
@@ -409,8 +421,11 @@ describe('CLI handleError', () => {
 describe('CLI main', () => {
   afterEach(() => {
     vi.spyOn(console, 'log').mockRestore();
+    vi.spyOn(console, 'info').mockRestore();
+    vi.spyOn(console, 'warn').mockRestore();
     vi.spyOn(process, 'cwd').mockRestore();
     vi.spyOn(process, 'exit').mockRestore();
+    vi.spyOn(process.stdout, 'write').mockRestore();
     delete process.env['GITHUB_ACCESS_TOKEN'];
   });
 
@@ -418,9 +433,11 @@ describe('CLI main', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('exit');
     });
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await expect(main(['node', 'github-label-sync'])).rejects.toThrow('exit');
+    writeSpy.mockRestore();
     expect(githubLabelSync).not.toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalled();
   });
@@ -431,6 +448,8 @@ describe('CLI main', () => {
     process.env['GITHUB_ACCESS_TOKEN'] = 'env-token';
     vi.spyOn(process, 'cwd').mockReturnValue(cwd);
     vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.mocked(githubLabelSync).mockClear();
 
     await main(['node', 'github-label-sync', '--dry-run', '--allow-added-labels', 'owner/repo']);

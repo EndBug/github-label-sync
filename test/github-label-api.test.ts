@@ -84,7 +84,15 @@ describe('createApiClient', () => {
       expect(() => createApiClient(accessToken, 'https://https://mydomain.com')).toThrow('https://https://mydomain.com');
       expect(() => createApiClient(accessToken, 'https://mydomain.com/other')).toThrow('https://mydomain.com/other');
       expect(() => createApiClient(accessToken, 'ftp://mydomain.com')).toThrow('ftp://mydomain.com');
+      expect(() => createApiClient(accessToken, '   ')).toThrow('Invalid GitHub endpoint: "   "');
       expect(Octokit).not.toHaveBeenCalled();
+    });
+
+    it('does not prefix api.github.com with /api/v3', async () => {
+      const { Octokit } = await import('@octokit/rest');
+      vi.mocked(Octokit).mockClear();
+      createApiClient(accessToken, 'https://api.github.com/api/v3');
+      expect(Octokit).toHaveBeenCalledWith({ auth: accessToken });
     });
   });
 });
