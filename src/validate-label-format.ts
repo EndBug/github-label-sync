@@ -1,6 +1,7 @@
 import Ajv from 'ajv/dist/ajv.js';
 import type { ValidateFunction } from 'ajv';
 import addFormats from './label-formats.js';
+import { normalizeColor } from './label-color.js';
 import type { ConfiguredLabel } from './index.js';
 
 const ajv = new Ajv({ allErrors: true });
@@ -22,6 +23,22 @@ const schema = {
   additionalProperties: false,
 };
 
-const validateLabelFormat: ValidateFunction<ConfiguredLabel> = ajv.compile(schema);
+const compiled: ValidateFunction<ConfiguredLabel> = ajv.compile(schema);
 
-export default validateLabelFormat;
+function validateLabelFormat(data: unknown): data is ConfiguredLabel {
+  if (data !== null && typeof data === 'object' && 'color' in data) {
+    const record = data as { color?: unknown };
+    if (typeof record.color === 'string') {
+      record.color = normalizeColor(record.color);
+    }
+  }
+  return compiled(data);
+}
+
+Object.defineProperty(validateLabelFormat, 'errors', {
+  get() {
+    return compiled.errors;
+  },
+});
+
+export default validateLabelFormat as ValidateFunction<ConfiguredLabel>;

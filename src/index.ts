@@ -1,6 +1,7 @@
 import actionLabelDiff from './action-label-diff.js';
 import calculateLabelDiff from './calculate-label-diff.js';
 import { createApiClient } from './github-label-api.js';
+import { normalizeConfiguredLabel } from './label-color.js';
 import stringifyLabelDiff from './stringify-label-diff.js';
 import validateLabelFormat from './validate-label-format.js';
 
@@ -64,6 +65,7 @@ export function githubLabelSync(options: Partial<SyncOptions>): Promise<LabelDif
   let labelDiff: LabelDiff;
 
   if (resolvedOptions.labels.length) {
+    resolvedOptions.labels = resolvedOptions.labels.map(normalizeConfiguredLabel);
     const validationErrors: Array<{ label: ConfiguredLabel; errors: NonNullable<typeof validateLabelFormat.errors> }> = [];
 
     log.info('Validating provided labels');

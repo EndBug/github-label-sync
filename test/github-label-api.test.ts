@@ -41,6 +41,52 @@ describe('createApiClient', () => {
       expect.objectContaining({ baseUrl: 'https://github.example.com/api/v3' }),
     );
   });
+
+  describe('endpoint base URL', () => {
+    const accepted: Array<[string, string]> = [
+      ['mydomain.com', 'https://mydomain.com/api/v3'],
+      ['mydomain.com/', 'https://mydomain.com/api/v3'],
+      ['mydomain.com/api/v3', 'https://mydomain.com/api/v3'],
+      ['mydomain.com/api/v3/', 'https://mydomain.com/api/v3'],
+      ['https://mydomain.com', 'https://mydomain.com/api/v3'],
+      ['https://mydomain.com/', 'https://mydomain.com/api/v3'],
+      ['https://mydomain.com/api/v3', 'https://mydomain.com/api/v3'],
+      ['https://mydomain.com/api/v3/', 'https://mydomain.com/api/v3'],
+      ['http://mydomain.com', 'http://mydomain.com/api/v3'],
+      ['http://mydomain.com/api/v3/', 'http://mydomain.com/api/v3'],
+      ['  mydomain.com/api/v3  ', 'https://mydomain.com/api/v3'],
+    ];
+
+    it.each(accepted)('maps %s to %s', async (input, baseUrl) => {
+      const { Octokit } = await import('@octokit/rest');
+      vi.mocked(Octokit).mockClear();
+      createApiClient(accessToken, input);
+      expect(Octokit).toHaveBeenCalledWith(expect.objectContaining({ baseUrl, auth: accessToken }));
+    });
+
+    it('does not set baseUrl for github.com when the endpoint is omitted', async () => {
+      const { Octokit } = await import('@octokit/rest');
+      vi.mocked(Octokit).mockClear();
+      createApiClient(accessToken);
+      expect(Octokit).toHaveBeenCalledWith({ auth: accessToken });
+      vi.mocked(Octokit).mockClear();
+      createApiClient(accessToken, null);
+      expect(Octokit).toHaveBeenCalledWith({ auth: accessToken });
+      vi.mocked(Octokit).mockClear();
+      createApiClient(accessToken, '');
+      expect(Octokit).toHaveBeenCalledWith({ auth: accessToken });
+    });
+
+    it('throws for a value that is not a host or absolute URL', async () => {
+      const { Octokit } = await import('@octokit/rest');
+      vi.mocked(Octokit).mockClear();
+      expect(() => createApiClient(accessToken, 'not a url')).toThrow('Invalid GitHub endpoint: "not a url"');
+      expect(() => createApiClient(accessToken, 'https://https://mydomain.com')).toThrow('https://https://mydomain.com');
+      expect(() => createApiClient(accessToken, 'https://mydomain.com/other')).toThrow('https://mydomain.com/other');
+      expect(() => createApiClient(accessToken, 'ftp://mydomain.com')).toThrow('ftp://mydomain.com');
+      expect(Octokit).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('ApiClient', () => {

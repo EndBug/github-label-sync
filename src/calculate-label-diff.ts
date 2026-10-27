@@ -1,4 +1,5 @@
 import type { ConfiguredLabel, GitHubLabel, LabelDiff, LabelDiffEntry } from './index.js';
+import { normalizeColor } from './label-color.js';
 
 export default function calculateLabelDiff(
   currentLabels: GitHubLabel[],
@@ -9,15 +10,16 @@ export default function calculateLabelDiff(
   const resolvedLabels: GitHubLabel[] = [];
 
   configuredLabels.forEach((configuredLabel) => {
-    const matches = currentLabels.filter((currentLabel) =>
+    const nameMatches = currentLabels.filter((currentLabel) =>
       currentLabel.name.toLowerCase() === configuredLabel.name.toLowerCase(),
     );
 
     const aliasMatches = currentLabels.filter((currentLabel) =>
+      nameMatches.indexOf(currentLabel) === -1 &&
       (configuredLabel.aliases?.map(label => label.toLowerCase()) ?? []).indexOf(currentLabel.name.toLowerCase()) !== -1,
     );
 
-    matches.push(...aliasMatches);
+    const matches = [...nameMatches, ...aliasMatches];
     resolvedLabels.push(...matches);
 
     if (matches.length === 0 && !configuredLabel.delete) {
@@ -65,7 +67,14 @@ function colorsDiffer(configuredLabel: ConfiguredLabel, matchedLabel: GitHubLabe
   if (!configuredLabel.color) {
     return false;
   }
-  return configuredLabel.color !== matchedLabel.color;
+  return normalizeColor(configuredLabel.color) !== matchedLabel.color.toLowerCase();
+}
+
+function configuredColor(label: ConfiguredLabel, fallback: string): string {
+  if (!label.color) {
+    return fallback;
+  }
+  return normalizeColor(label.color);
 }
 
 function getLabelDescription(label: GitHubLabel | ConfiguredLabel, fallback = ''): string {
@@ -82,7 +91,7 @@ function createMissingEntry(expectedLabel: ConfiguredLabel): LabelDiffEntry {
     actual: null,
     expected: {
       name: expectedLabel.name,
-      color: expectedLabel.color ?? '',
+      color: configuredColor(expectedLabel, ''),
     },
   };
   const expectedDescription = getLabelDescription(expectedLabel);
@@ -102,7 +111,7 @@ function createChangedEntry(actualLabel: GitHubLabel, expectedLabel: ConfiguredL
     },
     expected: {
       name: expectedLabel.name,
-      color: expectedLabel.color || actualLabel.color,
+      color: configuredColor(expectedLabel, actualLabel.color),
     },
   };
 
