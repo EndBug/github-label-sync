@@ -154,6 +154,36 @@ describe('githubLabelSync', () => {
         await returnedPromise;
         expect(mockActionLabelDiff).not.toHaveBeenCalled();
       });
+
+      it('should warn when the diff is not empty', async () => {
+        const freshLog = { info: vi.fn(), warn: vi.fn() };
+        mockCalculateLabelDiff.mockReturnValue(labelDiff);
+        mockActionLabelDiff.mockReset();
+        await githubLabelSync({
+          ...options,
+          dryRun: true,
+          log: freshLog,
+          format: {
+            diff: (message: string) => message,
+            success: (message: string) => message,
+            warning: (message: string) => `WARN ${message}`,
+          },
+        });
+        expect(freshLog.warn).toHaveBeenCalledWith('WARN This is a dry run. No changes have been made on GitHub');
+        expect(mockActionLabelDiff).not.toHaveBeenCalled();
+        expect(freshLog.info).not.toHaveBeenCalledWith('Labels updated');
+      });
+
+      it('should not warn when the dry-run diff is empty', async () => {
+        const freshLog = { info: vi.fn(), warn: vi.fn() };
+        mockCalculateLabelDiff.mockReturnValue([]);
+        mockStringifyLabelDiff.mockReturnValue([]);
+        mockActionLabelDiff.mockReset();
+        await githubLabelSync({ ...options, dryRun: true, log: freshLog });
+        expect(freshLog.info).toHaveBeenCalledWith('Labels are already up to date');
+        expect(freshLog.warn).not.toHaveBeenCalledWith('This is a dry run. No changes have been made on GitHub');
+        expect(mockActionLabelDiff).not.toHaveBeenCalled();
+      });
     });
 
     describe('when allowAddedLabels is true', () => {
@@ -168,6 +198,21 @@ describe('githubLabelSync', () => {
       it('should pass allowAddedLabels=true to calculateLabelDiff', async () => {
         await returnedPromise;
         expect(mockCalculateLabelDiff).toHaveBeenCalledWith(labelsFromApi, options.labels, true);
+      });
+    });
+
+    describe('when the endpoint is invalid', () => {
+      it('should reject instead of throwing before a promise exists', async () => {
+        mockCreateApiClient.mockImplementation(() => {
+          throw new Error('Invalid GitHub endpoint: "not a url"');
+        });
+        mockApiClient.getLabels.mockClear();
+
+        const pending = githubLabelSync({ ...options, endpoint: 'not a url' });
+
+        expect(pending).toBeInstanceOf(Promise);
+        await expect(pending).rejects.toThrow('Invalid GitHub endpoint: "not a url"');
+        expect(mockApiClient.getLabels).not.toHaveBeenCalled();
       });
     });
 

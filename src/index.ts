@@ -1,6 +1,7 @@
 import actionLabelDiff from './action-label-diff.js';
 import calculateLabelDiff from './calculate-label-diff.js';
 import { createApiClient } from './github-label-api.js';
+import { normalizeConfiguredLabel } from './label-color.js';
 import stringifyLabelDiff from './stringify-label-diff.js';
 import validateLabelFormat from './validate-label-format.js';
 
@@ -58,12 +59,20 @@ export function githubLabelSync(options: Partial<SyncOptions>): Promise<LabelDif
     log: { ...githubLabelSync.defaults.log, ...options.log },
   };
 
-  const apiClient = createApiClient(resolvedOptions.accessToken, resolvedOptions.endpoint);
+  // createApiClient throws on an invalid endpoint. Callers attach .catch() to the
+  // returned promise, so that failure has to reject instead of escaping here.
+  let apiClient: ReturnType<typeof createApiClient>;
+  try {
+    apiClient = createApiClient(resolvedOptions.accessToken, resolvedOptions.endpoint);
+  } catch (error) {
+    return Promise.reject(error);
+  }
   const format = resolvedOptions.format;
   const log = resolvedOptions.log;
   let labelDiff: LabelDiff;
 
   if (resolvedOptions.labels.length) {
+    resolvedOptions.labels = resolvedOptions.labels.map(normalizeConfiguredLabel);
     const validationErrors: Array<{ label: ConfiguredLabel; errors: NonNullable<typeof validateLabelFormat.errors> }> = [];
 
     log.info('Validating provided labels');

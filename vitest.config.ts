@@ -14,7 +14,6 @@ export default defineConfig({
         functions: 90,
       },
       include: ['src/**/*.ts'],
-      exclude: ['src/bin.ts'],
     },
   },
 });

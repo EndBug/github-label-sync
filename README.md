@@ -32,14 +32,18 @@ This installs the `github-label-sync` command-line tool:
 Usage: github-label-sync [options] <repository>
 
 Options:
-
-  -h, --help                  output usage information
   -V, --version               output the version number
-  -a, --access-token <token>  a GitHub access token (also settable with a GITHUB_ACCESS_TOKEN environment variable)
-  -l, --labels <path>         the path or URL to look for the label configuration in. Default: labels.json
-  -d, --dry-run               calculate the required label changes but do not apply them
-  -A, --allow-added-labels    allow additional labels in the repo, and don't delete them
-  -e, --endpoint <url>        specify a GitHub enterprise installation
+  -a, --access-token <token>  a GitHub access token (also settable with a
+                              GITHUB_ACCESS_TOKEN environment variable)
+  -l, --labels <path>         the path or URL to look for the label
+                              configuration in (default: labels.json)
+  -d, --dry-run               calculate the required label changes but do not
+                              apply them
+  -A, --allow-added-labels    allow additional labels in the repo, and don't
+                              delete them
+  -e, --endpoint <url>        GitHub Enterprise host or URL, for example
+                              mydomain.com or https://mydomain.com/api/v3
+  -h, --help                  display help for command
 ```
 
 Run GitHub Label Sync on a repo (reading [label data](#label-config-file) from a local `labels.json`):
@@ -163,13 +167,15 @@ The labels to sync with are defined as an array in either JavaScript, JSON or YA
 As JSON:
 
 ```json
-{
-    "name": "mylabel",
-    "color": "ff0000",
-    "aliases": [],
-    "description": "optional description",
-    "delete": false
-}
+[
+    {
+        "name": "mylabel",
+        "color": "ff0000",
+        "aliases": [],
+        "description": "optional description",
+        "delete": false
+    }
+]
 ```
 
 As YAML:
@@ -191,14 +197,16 @@ The `aliases` property is optional. When GitHub Label Sync is determining whethe
 For example, given the following config, GitHub Label Sync will look for labels on GitHub named either "feature" or "enhancement" then _update_ them to match the newer config rather than deleting them.
 
 ```json
-{
-    "name": "type: feature",
-    "color": "00ff00",
-    "aliases": ["enhancement", "feature"]
-}
+[
+    {
+        "name": "type: feature",
+        "color": "00ff00",
+        "aliases": ["enhancement", "feature"]
+    }
+]
 ```
 
-You can find a full example label configuration in this repository ([YAML](labels.yml)).
+You can find a full example label configuration in this repository ([YAML](labels.yml)). The example `duplicate` label sets `delete: true`, so a sync always removes that label.
 
 ## Configuration
 
@@ -277,6 +285,23 @@ The command-line accepts the repo as an argument after the options:
 
 ```
 github-label-sync EndBug/github-label-sync
+```
+
+### `endpoint`
+
+_String_. GitHub Enterprise Server API base URL. Omit this for github.com. A host (`mydomain.com`), a host that already includes the API prefix (`mydomain.com/api/v3`), and the same values as `http://` or `https://` URLs are all accepted, including a trailing slash. Any other path is rejected before a request is sent.
+
+```js
+githubLabelSync({
+    endpoint: 'https://mydomain.com/api/v3',
+    repo: 'my-org/my-repo'
+});
+```
+
+On the command-line:
+
+```sh
+github-label-sync --endpoint https://mydomain.com/api/v3 my-org/my-repo
 ```
 
 ## Contributing

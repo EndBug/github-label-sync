@@ -11,9 +11,10 @@ export class ApiClient {
   private octokit: Octokit;
 
   constructor(accessToken: string | null, apiEndpoint?: string | null) {
+    const baseUrl = resolveEndpointBaseUrl(apiEndpoint);
     this.octokit = new Octokit({
       auth: accessToken ?? undefined,
-      ...(apiEndpoint ? { baseUrl: `https://${apiEndpoint}/api/v3` } : {}),
+      ...(baseUrl ? { baseUrl } : {}),
     });
   }
 
@@ -118,4 +119,53 @@ export function isRequestError(error: unknown): error is RequestError {
 
 export function createApiClient(accessToken: string | null, apiEndpoint?: string | null): ApiClient {
   return new ApiClient(accessToken, apiEndpoint);
+}
+
+function resolveEndpointBaseUrl(apiEndpoint?: string | null): string | undefined {
+  if (!apiEndpoint) {
+    return undefined;
+  }
+  const baseUrl = resolveGitHubBaseUrl(apiEndpoint);
+  if (baseUrl === 'https://api.github.com') {
+    return undefined;
+  }
+  return baseUrl;
+}
+
+export function resolveGitHubBaseUrl(apiEndpoint: string): string {
+  const trimmed = apiEndpoint.trim();
+  if (!trimmed) {
+    throw invalidEndpoint(apiEndpoint);
+  }
+
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed);
+  let url: URL;
+  try {
+    url = new URL(hasScheme ? trimmed : `https://${trimmed}`);
+  } catch {
+    throw invalidEndpoint(apiEndpoint);
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw invalidEndpoint(apiEndpoint);
+  }
+
+  let pathname = url.pathname.replace(/\/+$/, '');
+  if (pathname === '') {
+    pathname = '/api/v3';
+  } else if (pathname.toLowerCase() === '/api/v3') {
+    pathname = '/api/v3';
+  } else {
+    throw invalidEndpoint(apiEndpoint);
+  }
+
+  if (url.hostname.toLowerCase() === 'api.github.com') {
+    return 'https://api.github.com';
+  }
+
+  return `${url.protocol}//${url.host}${pathname}`;
+}
+
+function invalidEndpoint(value: string): Error {
+  return new Error(`Invalid GitHub endpoint: "${value}"`);
 }
