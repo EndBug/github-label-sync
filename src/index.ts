@@ -59,7 +59,14 @@ export function githubLabelSync(options: Partial<SyncOptions>): Promise<LabelDif
     log: { ...githubLabelSync.defaults.log, ...options.log },
   };
 
-  const apiClient = createApiClient(resolvedOptions.accessToken, resolvedOptions.endpoint);
+  // createApiClient throws on an invalid endpoint. Callers attach .catch() to the
+  // returned promise, so that failure has to reject instead of escaping here.
+  let apiClient: ReturnType<typeof createApiClient>;
+  try {
+    apiClient = createApiClient(resolvedOptions.accessToken, resolvedOptions.endpoint);
+  } catch (error) {
+    return Promise.reject(error);
+  }
   const format = resolvedOptions.format;
   const log = resolvedOptions.log;
   let labelDiff: LabelDiff;

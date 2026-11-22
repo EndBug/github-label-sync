@@ -201,6 +201,21 @@ describe('githubLabelSync', () => {
       });
     });
 
+    describe('when the endpoint is invalid', () => {
+      it('should reject instead of throwing before a promise exists', async () => {
+        mockCreateApiClient.mockImplementation(() => {
+          throw new Error('Invalid GitHub endpoint: "not a url"');
+        });
+        mockApiClient.getLabels.mockClear();
+
+        const pending = githubLabelSync({ ...options, endpoint: 'not a url' });
+
+        expect(pending).toBeInstanceOf(Promise);
+        await expect(pending).rejects.toThrow('Invalid GitHub endpoint: "not a url"');
+        expect(mockApiClient.getLabels).not.toHaveBeenCalled();
+      });
+    });
+
     describe('when a label fails validation', () => {
       it('should reject with a validation error message', async () => {
         mockValidateLabelFormat.mockReturnValue(false as unknown as ReturnType<typeof mockValidateLabelFormat>);

@@ -34,7 +34,13 @@ const validateLabelFormat = function validateLabelFormat(data: unknown): data is
   if (data !== null && typeof data === 'object' && 'color' in data) {
     const record = data as { color?: unknown };
     if (typeof record.color === 'string') {
-      record.color = normalizeColor(record.color);
+      const color = normalizeColor(record.color);
+      // "" and "#" are not configured. Drop them so the hex pattern is not applied.
+      if (color === '') {
+        delete record.color;
+      } else {
+        record.color = color;
+      }
     }
   }
   const valid = compiled(data);

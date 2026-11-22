@@ -21,6 +21,16 @@ describe('validateLabelFormat', () => {
     expect(validateLabelFormat({ name: 'bug 🐛', color: 'ff0000' })).toBe(true);
   });
 
+  it('should treat an empty color as omitted', () => {
+    const empty = { name: 'bug', color: '' };
+    expect(validateLabelFormat(empty)).toBe(true);
+    expect(empty).not.toHaveProperty('color');
+
+    const hashOnly = { name: 'bug', color: '#' };
+    expect(validateLabelFormat(hashOnly)).toBe(true);
+    expect(hashOnly).not.toHaveProperty('color');
+  });
+
   it('should accept a missing color and both hex cases', () => {
     expect(validateLabelFormat({ name: 'bug' })).toBe(true);
     const upper = { name: 'bug', color: 'FF0000' };
